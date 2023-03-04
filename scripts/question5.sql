@@ -152,9 +152,12 @@ with cte AS (
 
 SELECT so/games_played AS avg_so_per_game,hr/games_played AS hrs_per_game,yearid
 FROM cte 
+
+
+--FINAL ANSWER
 --New idea
-SELECT ROUND(so/(sum(teams.g)/2) :: numeric,2) AS avg_so_per_game,
-		ROUND (hr/(sum(teams.g)/2):: numeric,2) AS avg_hr_per_game,
+SELECT ROUND(sum(so)/(sum(teams.g)/2) :: numeric,2) AS avg_so_per_game,
+		ROUND (sum(hr)/(sum(teams.g)/2):: numeric,2) AS avg_hr_per_game,
 	 (SELECT
 	  CASE 
 		WHEN yearid BETWEEN '1920' AND '1929' THEN '1920s'
@@ -169,19 +172,26 @@ SELECT ROUND(so/(sum(teams.g)/2) :: numeric,2) AS avg_so_per_game,
 		WHEN yearid BETWEEN '2010' AND '2019' THEN '2010s'
 		END AS decade)
 FROM teams
+GROUP BY  decade
 ORDER BY decade
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 with cte AS (
-	SELECT sb,cs,playerid, (sb+cs) AS stolen_base_attempts
+	SELECT sb,cs,playerid, (sb+cs)::numeric AS stolen_base_attempts
 	FROM batting
 	WHERE yearid = 2016)
 	
-	SELECT playerid,stolen_base_attempts,sb,(sb/stolen_base_attempts)*100 :: numeric AS sb_success
-	
+	SELECT playerid,stolen_base_attempts::numeric,sb::numeric,ROUND((sb/stolen_base_attempts)*100 :: numeric,2) AS sb_success,
+	(SELECT namegiven
+									 FROM people
+									 WHERE playerid='owingch01')
 	FROM cte
 	WHERE stolen_base_attempts >= 20
+	ORDER BY sb_success DESC
+	LIMIT 1
 	
+-- 	SELECT playerid,stolen_base_attempts::numeric,sb::numeric,(sb/stolen_base_attempts)*100 :: numeric AS sb_success
+-- 	SELECT playerid,stolen_base_attempts::numeric,sb::numeric,(sb/stolen_base_attempts)*100 :: numeric AS sb_success
 -- 	SELECT stolen_base_attempts
 -- 	FROM batting
 -- 	WHERE stolen_base_attempts >= 20
