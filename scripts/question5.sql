@@ -100,7 +100,14 @@ GROUP BY decade
 ORDER BY decade ASC
 
 --Factor in games
-SELECT
+with cte AS (
+	SELECT (sum(teams.g)/2)AS games_played,
+		yearid,so
+	FROM teams
+	GROUP BY teams.g,yearid,so)
+
+SELECT so/games_played AS avg_so_per_game,
+	(SELECT
 	 CASE 
 		WHEN yearid BETWEEN '1920' AND '1929' THEN '1920s'
 		WHEN yearid BETWEEN '1930' AND '1939' THEN '1930s'
@@ -114,20 +121,54 @@ SELECT
 		WHEN yearid BETWEEN '2010' AND '2019' THEN '2010s'
 		END AS decade,
 		ROUND(AVG(so),2)AS avg_strikeout, ROUND(AVG(hr),2 )AS avg_homeruns,SUM(teams.g)
-FROM teams
-GROUP BY decade
-ORDER BY decade ASC
+	FROM teams
+	GROUP BY decade
+	ORDER BY decade ASC)
+so/games_played AS avg_so_per_game
+FROM cte
+--(SELECT
+-- 	 CASE 
+-- 		WHEN yearid BETWEEN '1920' AND '1929' THEN '1920s'
+-- 		WHEN yearid BETWEEN '1930' AND '1939' THEN '1930s'
+-- 		WHEN yearid BETWEEN '1940' AND '1949' THEN '1940s'
+-- 		WHEN yearid BETWEEN '1950' AND '1959' THEN '1950s'
+-- 		WHEN yearid BETWEEN '1960' AND '1969' THEN '1960s'
+-- 		WHEN yearid BETWEEN '1970' AND '1979' THEN '1970s'
+-- 		WHEN yearid BETWEEN '1980' AND '1989' THEN '1980s'
+-- 		WHEN yearid BETWEEN '1990' AND '1999' THEN '1990s'
+-- 		WHEN yearid BETWEEN '2000' AND '2009' THEN '2000s'
+-- 		WHEN yearid BETWEEN '2010' AND '2019' THEN '2010s'
+-- 		END AS decade,
+-- 		ROUND(AVG(so),2)AS avg_strikeout, ROUND(AVG(hr),2 )AS avg_homeruns,SUM(teams.g)
+-- FROM teams
+-- GROUP BY decade
+-- ORDER BY decade ASC)
 --
-SELECT sum(teams.g),yearid
-FROM teams
+with cte AS (
+	SELECT (sum(teams.g)/2)AS games_played,
+		yearid,so,hr
+	FROM teams
+	GROUP BY teams.g,yearid,so,hr)
 
-SELECT *
-FROM batting
+SELECT so/games_played AS avg_so_per_game,hr/games_played AS hrs_per_game,yearid,
+FROM cte 
+
+
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
-	SELECT sb,cs,playerid, (sb+cs) AS stolen_base_attemtps,(sb+cs)/sb AS succes_rate
+with cte AS (
+	SELECT sb,cs,playerid, (sb+cs) AS stolen_base_attempts
 	FROM batting
-	WHERE yearid = 2016
+	WHERE yearid = 2016)
+	
+	SELECT playerid,stolen_base_attempts,sb,(sb/stolen_base_attempts)*100 :: numeric AS sb_success,
+	
+	FROM cte
+	WHERE stolen_base_attempts >= 20
+	
+-- 	SELECT stolen_base_attempts
+-- 	FROM batting
+-- 	WHERE stolen_base_attempts >= 20
 
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 
