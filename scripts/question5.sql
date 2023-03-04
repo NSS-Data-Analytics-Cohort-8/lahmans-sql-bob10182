@@ -174,6 +174,7 @@ SELECT ROUND(sum(so)/(sum(teams.g)/2) :: numeric,2) AS avg_so_per_game,
 FROM teams
 GROUP BY  decade
 ORDER BY decade
+--Home runs have only gone up about one point over the time period but strikeouts have increased almost by almost ten. 
 
 -- 6. Find the player who had the most success stealing bases in 2016, where __success__ is measured as the percentage of stolen base attempts which are successful. (A stolen base attempt results either in a stolen base or being caught stealing.) Consider only players who attempted _at least_ 20 stolen bases.
 with cte AS (
@@ -199,6 +200,136 @@ with cte AS (
 -- 7.  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series? What is the smallest number of wins for a team that did win the world series? Doing this will probably result in an unusually small number of wins for a world series champion – determine why this is the case. Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series? What percentage of the time?
 --Do Not aggregate wins, think of ORDER BY
 
+--  From 1970 – 2016, what is the largest number of wins for a team that did not win the world series?
+SELECT teamid,w,divwin,wcwin,lgwin,wswin
+FROM teams
+WHERE yearid BETWEEN 1970 AND 2016 AND wswin ='N'
+ORDER BY w DESC 
+--ANSWER SEA with 116 wins regular season one win in post season for 117 wins
+
+-- What is the smallest number of wins for a team that did win the world series?
+SELECT teamid,w,divwin,wcwin,lgwin,wswin,yearid
+FROM teams
+WHERE yearid BETWEEN 1970 AND 2016 AND wswin ='Y'
+ORDER BY w ASC
+--ANSWER LAN with 63 regular season wins and two post seasons wins and one world series win, there was a 1981 players strike in the MLB that year
+
+-- Then redo your query, excluding the problem year. How often from 1970 – 2016 was it the case that a team with the most wins also won the world series?
+SELECT teamid,w,divwin,wcwin,lgwin,wswin,yearid
+FROM teams
+WHERE yearid BETWEEN 1970 AND 2016  '1981' AND wswin ='Y'
+ORDER BY w ASC
+
+How often from 1970 – 2016 was it the case that a team with the most wins also won the world series?
+
+SELECT teamid,w,wswin
+FROM teams
+WHERE yearid BETWEEN 1970 AND 2016
+
+
+--  How often from 1970 – 2016 was it the case that a team with the most wins also won the world series?
+
+WITH cte AS(SELECT MAX(w) AS max_wins,yearid-- MAX wins rach year
+			FROM teams
+		   WHERE yearid BETWEEN 1970 AND 2016
+		   GROUP BY yearid
+		   ORDER BY yearid),
+
+ cte2 AS (
+	SELECT wswin,teamid
+FROM teams
+WHERE wswin = 'Y' AND yearid BETWEEN 1970 AND 2016)
+
+SELECT teams.teamid, teams.wswin, cte.max_wins,yearid
+FROM teams
+INNER JOIN cte
+USING (yearid)
+INNER JOIN cte2
+USING (teamid)
+ORDER BY yearid
+WHERE cte = TRUE
+
+-- with cte.2 AS (
+-- 	SELECT wswin,teamid
+-- FROM teams
+-- WHERE wswin = 'Y' AND yearid BETWEEN 1970 AND 2016)
+
+-- WITH cte AS(SELECT MAX(w) AS max, yearid --MAX wins each year 
+-- 		   FROM teams
+-- 		   WHERE yearid BETWEEN 1970 AND 2016
+-- 		   GROUP BY yearid
+-- 		   ORDER BY yearid),
+-- 	cte2 AS (
+-- 		SELECT wswin,teamid
+-- 		FROM teams
+-- 		WHERE wswin = 'Y' AND yearid BETWEEN 1970 AND 2016)
+	
+-- SELECT teamid, teams.wswin, COUNT(teams.wswin)
+-- FROM teams
+-- INNER JOIN cte
+-- USING (yearid)
+-- INNER JOIN cte2
+-- USING (teamid)
+-- WHERE teams.wswin='Y'
+-- GROUP BY teams.teamid, teams.wswin;
+-- -- new cte
+
+-- SELECT teamid, MAX(W) AS max_wins
+--   FROM teams
+--   WHERE yearID BETWEEN 1970 AND 2016 AND WSWin='Y'
+--   GROUP BY teamid
+  
+--   --
+--   WITH champ_wins AS (
+--   SELECT teamid, MAX(W) AS max_wins
+--   FROM teams
+--   WHERE yearID BETWEEN 1970 AND 2016 AND WSWin='Y'
+--   GROUP BY teamid
+-- ), non_champ_wins AS (
+--   SELECT MAX(W) AS max_wins
+--   FROM teams
+--   WHERE yearID BETWEEN 1970 AND 2016 AND WSWin='N'
+-- )
+-- SELECT COUNT(*) AS num_champs, 
+--   COUNT(*) * 100.0 / (SELECT COUNT(DISTINCT yearID) :: numeric
+-- 					  FROM teams WHERE yearID BETWEEN 1970 AND 2016 AND WSWin='Y') AS percentage
+-- FROM champ_wins
+-- JOIN non_champ_wins ON champ_wins.max_wins = non_champ_wins.max_wins;
+
+WITH cte AS(SELECT MAX(w) AS max, yearid --MAX wins each year 
+		   FROM teams
+		   WHERE yearid BETWEEN 1970 AND 2016
+		   GROUP BY yearid
+		   ORDER BY yearid),
+	cte2 AS (
+		SELECT wswin,teamid
+		FROM teams
+		WHERE wswin = 'Y' AND yearid BETWEEN 1970 AND 2016)
+SELECT teamid, teams.wswin
+FROM teams
+INNER JOIN cte
+USING (yearid)
+INNER JOIN cte2
+USING (teamid)
+WHERE teams.wswin='Y'
+GROUP BY teams.teamid, teams.wswin;
+
+WITH max_wins AS (
+  SELECT MAX(w) AS max_wins, yearid
+  FROM teams
+  WHERE yearid BETWEEN 1970 AND 2016
+  GROUP BY yearid
+)
+SELECT 
+  COUNT(*) AS num_champs, 
+  COUNT(*) * 100.0 / (SELECT COUNT(DISTINCT yearid) FROM teams WHERE yearid BETWEEN 1970 AND 2016) AS percentage
+FROM (
+  SELECT teams.teamid, teams.yearid
+  FROM teams
+  INNER JOIN max_wins
+  ON teams.yearid = max_wins.yearid AND teams.w = max_wins.max_wins
+  WHERE teams.wswin = 'Y'
+) AS champ_wins;
 
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
 
