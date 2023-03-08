@@ -360,19 +360,30 @@ ON t1.yearid=c2.yearid AND t1.w=c2.max_w
 WHERE t1.yearid BETWEEN 1970 AND 2016
 AND t1.wswin='Y';
 -- 8. Using the attendance figures from the homegames table, find the teams and parks which had the top 5 average attendance per game in 2016 (where average attendance is defined as total attendance divided by number of games). Only consider parks where there were at least 10 games played. Report the park name, team name, and average attendance. Repeat for the lowest 5 average attendance.
---TOP 5 average attendance
-SELECT team,park,attendance/games AS avg_total_attendance
-FROM homegames
-WHERE year = 2016 AND games >= 10
-ORDER BY avg_total_attendance DESC
-LIMIT 5
+--HIGHest
+SELECT park_name, t.name, (h.attendance/h.games) AS avg_attendance
+FROM homegames AS h
+JOIN parks AS p
+USING (park)
+JOIN teams AS t
+ON h.team = t.teamid AND h.year = t.yearid
+WHERE year = 2016
+AND games >= 10
+ORDER BY avg_attendance DESC
+LIMIT 5;
 
---Lowest 5 average attendance
-SELECT team,park,attendance/games AS avg_total_attendance
-FROM homegames
-WHERE year = 2016 AND games >= 10
-ORDER BY avg_total_attendance ASC
-LIMIT 5
+--WIth team name and park name Lowest
+SELECT park_name, t.name, (h.attendance/h.games) AS avg_attendance
+FROM homegames AS h
+JOIN parks AS p
+USING (park)
+JOIN teams AS t
+ON h.team = t.teamid AND h.year = t.yearid
+WHERE year = 2016
+AND games >= 10
+ORDER BY avg_attendance ASC
+LIMIT 5;
+
 
 -- 9. Which managers have won the TSN Manager of the Year award in both the National League (NL) and the American League (AL)? Give their full name and the teams that they were managing when they won the award.
 
@@ -445,7 +456,10 @@ GROUP BY
 --WHERE cte1.lgid IS NOT NULL
 --AND cte2.lgid IS NOT NULL,
 
-SELECT a.playerid, COUNT(DISTINCT a.lgid), b.yearid
+SELECT a.playerid, COUNT(DISTINCT a.lgid), b.yearid,
+	(SELECT name
+	FROM team
+	WHERE name.teamid = managers.teamid)
 		FROM awardsmanagers AS a
 		LEFT JOIN awardsmanagers as b
 		USING (playerid)
@@ -454,8 +468,35 @@ SELECT a.playerid, COUNT(DISTINCT a.lgid), b.yearid
 		GROUP BY a.playerid, b.yearid
 		HAVING COUNT(DISTINCT a.lgid)>=2
 -- 10. Find all players who hit their career highest number of home runs in 2016. Consider only players who have played in the league for at least 10 years, and who hit at least one home run in 2016. Report the players' first and last names and the number of home runs they hit in 2016.
+-- SELECT sum(hr),playerid,yearid
+-- FROM batting
+-- WHERE hr > 0 
+SELECT yearid,
+	   playerid,
+	  hr
+FROM batting
+WHERE hr >0
+GROUP BY ROLLUP(yearid, playerid,hr)
+ORDER BY playerid,yearid
 
+--max hr with at least 10 years
+SELECT 
+  playerID, 
+  MAX(HR) AS career_high_hr
+FROM 
+  Batting
+WHERE 
+  HR > 0
+GROUP BY 
+  playerID
+HAVING 
+  COUNT(DISTINCT yearID) >= 10;
+  
+SELECT GREATEST(hr), playerid,yearid
+FROM batting
 
+  
+  
 -- **Open-ended questions**
 
 -- 11. Is there any correlation between number of wins and team salary? Use data from 2000 and later to answer this question. As you do this analysis, keep in mind that salaries across the whole league tend to increase together, so you may want to look on a year-by-year basis.
